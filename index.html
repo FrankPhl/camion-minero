@@ -56,7 +56,6 @@
     .motor-card.activo { border-color: #38bdf8; }
     .motor-label { font-size: 0.78rem; color: #94a3b8; }
     .motor-val { font-size: 1.1rem; font-weight: 800; }
-    .motor-vel { font-size: 0.85rem; color: #94a3b8; font-weight: 600; }
 
     /* Sensores */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
@@ -72,14 +71,6 @@
       background: #1e293b; border: 1px solid #334155; border-radius: 12px;
       padding: 12px; margin-bottom: 12px;
     }
-    .control-title { font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px; }
-    .selector { display: flex; gap: 6px; margin-bottom: 10px; }
-    .selector button {
-      flex: 1; padding: 10px; font-size: 0.85rem; font-weight: 700;
-      background: #0f172a; border: 1px solid #334155; color: #94a3b8;
-      border-radius: 8px; cursor: pointer;
-    }
-    .selector button.sel { background: #2563eb; border-color: #2563eb; color: #fff; }
     .arrows { display: flex; gap: 10px; }
     .arrow {
       flex: 1; height: 84px; font-size: 2.2rem; border: none; border-radius: 12px;
@@ -132,7 +123,6 @@
         <div class="motor-label">Motor</div>
         <div id="motorTexto" class="motor-val">--</div>
       </div>
-      <div id="motorVel" class="motor-vel"></div>
     </div>
 
     <div class="grid">
@@ -159,11 +149,6 @@
     </div>
 
     <div class="control">
-      <div class="control-title">Velocidad</div>
-      <div class="selector">
-        <button id="velL" class="sel" data-vel="L">LENTO</button>
-        <button id="velN" data-vel="N">NORMAL</button>
-      </div>
       <div class="arrows">
         <button id="btnAdelante" class="arrow" disabled aria-label="Avanzar">&#9650;</button>
         <button id="btnAtras" class="arrow" disabled aria-label="Retroceder">&#9660;</button>
@@ -209,7 +194,6 @@
     let ultimoDato = 0;
     let datosOk = false;
     let paro = false;
-    let velocidad = "L";
     let dirActiva = null;
     let timerCmd = null;
     let timerReset = null;
@@ -317,7 +301,6 @@
       const motor = String(d.motor || "DETENIDO");
       const etiqueta = { DETENIDO: "DETENIDO", AVANZANDO: "▲ AVANZANDO", RETROCEDIENDO: "▼ RETROCEDIENDO" };
       $("motorTexto").textContent = etiqueta[motor] || motor;
-      $("motorVel").textContent = motor === "DETENIDO" ? "" : (d.vel === "N" ? "Normal" : "Lento");
       $("motorBox").className = motor === "DETENIDO" ? "motor-card" : "motor-card activo";
 
       actualizarControles();
@@ -329,7 +312,6 @@
       paro = false;
       setEstado("sindatos", "SIN DATOS DEL ESP32", "No llega telemetría");
       $("motorTexto").textContent = "--";
-      $("motorVel").textContent = "";
       $("motorBox").className = "motor-card";
       $("valDist").textContent = "-- mm";
       $("valCarga").textContent = "-- N";
@@ -365,7 +347,7 @@
 
     function enviarMov() {
       if (!dirActiva || !puedeMover()) { detener(); return; }
-      client.publish(TOPIC_CONTROL, dirActiva + ":" + velocidad);
+      client.publish(TOPIC_CONTROL, dirActiva);
     }
 
     function detener() {
@@ -408,14 +390,6 @@
     // Detener si la página pierde el foco o se oculta
     window.addEventListener("blur", detener);
     document.addEventListener("visibilitychange", () => { if (document.hidden) detener(); });
-
-    // --- Selector de velocidad ---
-    document.querySelectorAll(".selector button").forEach((b) => {
-      b.addEventListener("click", () => {
-        velocidad = b.dataset.vel;
-        document.querySelectorAll(".selector button").forEach((x) => x.classList.toggle("sel", x === b));
-      });
-    });
 
     // --- RESET del paro ---
     btnReset.addEventListener("click", () => {
